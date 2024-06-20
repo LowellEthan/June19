@@ -4,3 +4,7 @@
 .Ruserdata
 
 *RProj
+
+/.quarto/
+
+_site/

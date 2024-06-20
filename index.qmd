@@ -1,0 +1,50 @@
+---
+title: "Percentage of people with bachelor degrees in census tracts in LA"
+---
+
+```{r}
+#| message: FALSE
+#| echo: FALSE
+library(tidyverse)
+library(tidycensus)
+library(leaflet)
+library(sf)
+```
+
+```{r}
+#| message: FALSE
+#| echo: FALSE
+# Set your Census API key
+census_api_key("25c6282777edd3185c7806d1168c5d22b36395c6")
+
+# Define your variables of interest (educational attainment variables)
+vars <- c("B15003_022")  # Bachelor's degree
+
+# Download data for Los Angeles County, California without progress bars
+la_county <- get_acs(geography = "tract", variables = vars, 
+                     state = "CA", county = "Los Angeles", geometry = TRUE, progress = FALSE)
+
+# Clean the data
+la_county <- la_county %>%
+  select(GEOID, geometry, estimate) %>%
+  rename(tract_id = GEOID, bachelor_degree_pct = estimate)
+
+# Transform the spatial data to WGS84 (EPSG code 4326)
+la_county <- st_transform(la_county, crs = 4326)
+
+# Create a color palette for the legend with higher contrast
+color_palette <- colorNumeric(palette = "YlOrRd", domain = la_county$bachelor_degree_pct)
+
+# Create a Leaflet map
+leaflet() %>%
+  addProviderTiles("CartoDB.Positron") %>%
+  addPolygons(data = la_county, fillColor = ~color_palette(bachelor_degree_pct),
+              weight = 0.5, opacity = 1, color = "black", fillOpacity = 0.9,  # Increase fillOpacity for prominence
+              popup = paste("Tract ID: ", la_county$tract_id, "<br>",
+                            "Bachelor's Degree %: ", round(la_county$bachelor_degree_pct, 2), "%")) %>%
+  addLegend(position = "bottomright", pal = color_palette,
+            values = la_county$bachelor_degree_pct, title = "Bachelor's Degree %",
+            labFormat = labelFormat(suffix = "%")) %>%
+  addScaleBar(position = "bottomleft")
+```
+
